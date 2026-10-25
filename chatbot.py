@@ -7,11 +7,12 @@ def load_faqs():
         with open("faq.json", "r", encoding="utf-8") as file:
             return json.load(file)
     except (FileNotFoundError, json.JSONDecodeError):
-        print("Bot: FAQ file is missing or invalid.")
+        print("Bot: FAQ file missing or invalid.")
         return {}
 
 def main():
     faqs = load_faqs()
+    state = "greeting"
 
     patterns = {
         "hours": r"\b(hours|timing|open|close)\b",
@@ -20,9 +21,7 @@ def main():
         "delivery": r"\b(delivery|shipping|order)\b"
     }
 
-    print("=" * 35)
     print("CUSTOMER SUPPORT CHATBOT")
-    print("=" * 35)
     print("Ask about hours, price, returns, or delivery.")
     print("Type bye, exit, or quit to stop.")
 
@@ -35,14 +34,19 @@ def main():
                 continue
 
             if re.fullmatch(r"(bye|exit|quit)", text):
+                state = "exit"
                 print("Bot: Thank you for chatting. Goodbye!")
                 break
 
-            found = False
+            if state == "greeting" and re.search(
+                r"\b(hello|hi|hey)\b", text
+            ):
+                print("Bot: Hello! How can I help you?")
+                state = "intent_identification"
+                continue
 
-            if re.search(r"\b(hello|hi|hey)\b", text):
-                print("Bot: Hello! Welcome to our support assistant.")
-                found = True
+            state = "intent_identification"
+            found = False
 
             for key, pattern in patterns.items():
                 if re.search(pattern, text) and key in faqs:
@@ -53,12 +57,19 @@ def main():
                 print("Bot: You're welcome!")
                 found = True
 
-            if not found:
-                print("Bot: Sorry, I didn't understand. Ask about hours, price, returns, or delivery.")
+            if found:
+                state = "resolution"
+            else:
+                print(
+                    "Bot: Sorry, I didn't understand. "
+                    "Ask about hours, price, returns, or delivery."
+                )
 
         except (EOFError, KeyboardInterrupt):
             print("\nBot: Goodbye!")
             break
+        except Exception as error:
+            print("Bot: An error occurred. Please try again.")
 
 if __name__ == "__main__":
     main()
